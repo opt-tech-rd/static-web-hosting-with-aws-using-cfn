@@ -78,8 +78,8 @@ Resources:
           - DomainName: !GetAtt myBucket.RegionalDomainName
             Id: myS3Origin
             OriginAccessControlId: !GetAtt myOriginAccessControll.Id
-            CustomOriginConfig:
-              OriginProtocolPolicy: https-only
+            S3OriginConfig:
+              OriginAccessIdentity: ''
         PriceClass: PriceClass_200
         HttpVersion: http2
         IPV6Enabled: 'true'
