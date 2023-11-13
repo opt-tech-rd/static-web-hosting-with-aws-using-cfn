@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Conditions:
+  TargetRegionIsUsEast1:
+    !Equals
+      - !Ref 'AWS::Region'
+      - us-east-1
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: Domain name of the website
+    Default: example.com
+  DefaultRootObject:
+    Type: String
+    Description: Default root object
+    Default: index.html
+  HostedZoneId:
+    Type: String
+    Description: Hosted zone id of the domain
+    Default: Z2FDTNDATAQYW2
+
+Resources:
+  myBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref DomainName
+
+  myCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Condition: TargetRegionIsUsEast1
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+
+  myARecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt myDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  myOriginAccessControll:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !GetAtt myBucket.RegionalDomainName
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  myDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - !Ref DomainName
+        ViewerCertificate:
+          AcmCertificateArn: !Ref myCertificate
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Enabled: 'true'
+        DefaultRootObject: !Ref DefaultRootObject
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: myS3Origin
+          ViewerProtocolPolicy: https-only
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        Origins:
+          - DomainName: !GetAtt myBucket.RegionalDomainName
+            Id: myS3Origin
+            OriginAccessControlId: !GetAtt myOriginAccessControll.Id
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+        PriceClass: PriceClass_200
+        HttpVersion: http2
+        IPV6Enabled: 'true'
+
+  myBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref myBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Principal:
+              Service: 'cloudfront.amazonaws.com'
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref myBucket
+                - /*
+            Condition:
+              StringEquals:
+                'AWS:SourceArn:': !Join
+                  - ''
+                  - - 'arn:aws:cloudfront::'
+                    - !Ref 'AWS::AccountId'
+                    - !Ref myDistribution
