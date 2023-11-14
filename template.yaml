@@ -55,6 +55,54 @@ Resources:
         SigningBehavior: always
         SigningProtocol: sigv4
 
+  myWebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      DefaultAction:
+        Allow: {}
+      Scope: CLOUDFRONT
+      Rules:
+        - Name: 'AWS-AWSManagedRulesAmazonIpReputationList'
+          Priority: 0
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              Name: AWSManagedRulesAmazonIpReputationList
+              VendorName: AWS
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: 'false'
+            MetricName: AWS-AWSManagedRulesAmazonIpReputationList
+            SampledRequestsEnabled: 'false'
+        - Name: 'AWS-AWSManagedRulesCommonRuleSet'
+          Priority: 1
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              Name: AWSManagedRulesCommonRuleSet
+              VendorName: AWS
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: 'false'
+            MetricName: AWS-AWSManagedRulesCommonRuleSet
+            SampledRequestsEnabled: 'false'
+        - Name: 'AWS-AWSManagedRulesKnownBadInputsRuleSet'
+          Priority: 2
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+              VendorName: AWS
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: 'false'
+            MetricName: AWS-AWSManagedRulesKnownBadInputsRuleSet
+            SampledRequestsEnabled: 'false'
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: 'false'
+        MetricName: !Ref DomainName
+        SampledRequestsEnabled: 'false'
+
   myDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -83,6 +131,7 @@ Resources:
         PriceClass: PriceClass_200
         HttpVersion: http2
         IPV6Enabled: 'true'
+        WebACLId: !Ref myWebACL
 
   myBucketPolicy:
     Type: AWS::S3::BucketPolicy
