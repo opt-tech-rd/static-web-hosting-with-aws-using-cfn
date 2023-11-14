@@ -106,4 +106,5 @@ Resources:
                   - ''
                   - - 'arn:aws:cloudfront::'
                     - !Ref 'AWS::AccountId'
+                    - ':distribution/'
                     - !Ref myDistribution
