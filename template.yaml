@@ -57,6 +57,7 @@ Resources:
 
   myWebACL:
     Type: AWS::WAFv2::WebACL
+    Condition: TargetRegionIsUsEast1
     Properties:
       DefaultAction:
         Allow: {}
@@ -131,7 +132,7 @@ Resources:
         PriceClass: PriceClass_200
         HttpVersion: http2
         IPV6Enabled: 'true'
-        WebACLId: !GetAtt myWebACL.Id
+        WebACLId: !GetAtt myWebACL.Arn
 
   myBucketPolicy:
     Type: AWS::S3::BucketPolicy
